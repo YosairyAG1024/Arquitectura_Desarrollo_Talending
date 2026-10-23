@@ -1,0 +1,27 @@
+{
+  "name": "arquitectura_desarrollo_talending",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "node --watch --env-file=.env src/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YosairyAG1024/Arquitectura_Desarrollo_Talending.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/YosairyAG1024/Arquitectura_Desarrollo_Talending/issues"
+  },
+  "homepage": "https://github.com/YosairyAG1024/Arquitectura_Desarrollo_Talending#readme",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.3.0",
+    "mongoose": "^9.11.2",
+    "mssql": "^12.7.9"
+  }
+}
