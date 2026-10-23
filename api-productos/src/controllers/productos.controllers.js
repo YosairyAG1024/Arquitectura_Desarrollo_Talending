@@ -1,5 +1,5 @@
-import { json } from "express";
 import {pool} from "../db/sqlserver.js";
+import { productoSchema } from "../validations/productos.schema.js";
 
 //get /api/productos
 export async function listarProductos(req, res){
@@ -9,40 +9,86 @@ export async function listarProductos(req, res){
 
 //get /api/productos/:id
 export async function obtenerProductos(req, res) {
-    const r = await pool.request()
-    .input('id', req.params.id)
-    .query('SELECT * FROM productos WHERE id = @id');
+    try {
+        const r = await pool.request()
+            .input("id", req.params.id)
+            .query("SELECT * FROM productos WHERE id = @id");
+        if (!r.recordset[0]) {
+            return res.status(404).json({msg: "Producto no encontrado"});
+        }
+        res.json(r.recordset[0]);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({msg: "Error al obtener el producto"});
+    }
 }
-
 //post /api/productos
 export async function crearProductos(req, res) {
-    const{nombre,precio,stock=0} = req.body;
-    if(!nombre || precio == undefined ) {
-        return res.status(400).json({msg: 'Faltan datos'});
+    const validacion = productoSchema.safeParse({
+        name: req.body.nombre,
+        price: req.body.precio,
+        stock: req.body.stock ?? 0
+    });
+
+    if (!validacion.success) {
+        return res.status(400).json({
+            msg: "Datos inválidos",
+            errores: validacion.error.issues.map(error => ({
+                campo: error.path[0],
+                mensaje: error.message
+            }))
+        });
     }
 
-    const r = await pool.request()
-        .input('nombre', nombre)    
-        .input('precio', precio)
-        .input('stock', stock)
-        .query('INSERT INTO productos (nombre, precio, stock) output INSERTED.* VALUES (@nombre, @precio, @stock)');
+    const { name, price, stock } = validacion.data;
+
+    try {
+        const r = await pool.request()
+            .input("nombre", name)
+            .input("precio", price)
+            .input("stock", stock)
+            .query(`INSERT INTO productos (nombre, precio, stock) OUTPUT INSERTED.* VALUES (@nombre, @precio, @stock)
+            `);
+
         res.status(201).json(r.recordset[0]);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({msg: "Error al crear el producto"});
+    }
 }
 
 //put /api/productos/:id
 export async function actualizarProductos(req, res) {
-    const{nombre, precio, stock} = req.body;
-    const r = await pool.request()
-        .input('id', req.params.id)
-        .input('nombre', nombre)
-        .input('precio', precio)
-        .input('stock', stock)
-        .query('UPDATE productos SET nombre = @nombre, precio = @precio, stock = @stock output INSERTED. * WHERE id = @id');
-    if(!r.recordset[0]){
-        res.status(404).json({msg: 'Productos no encontrado'});
-        return;
+    const validacion = productoSchema.safeParse({
+        name: req.body.nombre,
+        price: req.body.precio,
+        stock: req.body.stock
+    });
+
+    if (!validacion.success) {
+        return res.status(400).json({ msg: "Datos inválidos", errores: validacion.error.issues.map(error => ({ campo: error.path[0], mensaje: error.message}))
+        });
     }
-    res.json(r.recordset[0]);
+
+    const { name, price, stock } = validacion.data;
+
+    try {
+        const r = await pool.request()
+            .input("id", req.params.id)
+            .input("nombre", name)
+            .input("precio", price)
+            .input("stock", stock)
+            .query(`UPDATE productos SET nombre = @nombre, precio = @precio, stock = @stock OUTPUT INSERTED.* WHERE id = @id`);
+
+        if (!r.recordset[0]) {
+            return res.status(404).json({msg: "Producto no encontrado" });
+        }
+
+        res.json(r.recordset[0]);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({msg: "Error al actualizar el producto"});
+    }
 }
 
 //delete /api/producto/:id

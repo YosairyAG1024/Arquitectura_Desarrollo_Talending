@@ -1,4 +1,4 @@
-import routes, { Router } from "express";
+import { Router } from "express";
 import * as ctrl from "../controllers/productos.controllers.js"
 
 const router = Router();
