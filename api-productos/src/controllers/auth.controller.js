@@ -20,6 +20,7 @@ export async function registro(req, res){
 
 //post /api/auth/login
 export async function login(req, res){
+     console.log('Cuerpo recibido por el backend:', req.body);
     const {correo, password } = req.body;
     if(!correo || !password) {
         return res.status(400).json({msg: "Por favor, complete todos los campos"})

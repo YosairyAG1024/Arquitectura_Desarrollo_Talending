@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 
 export function verificarToken(req, res, next) {
     const header = req.headers.authorization ?? ' ';
-    const token = header.startsWith('Bearer') ? header.slice(7) : null;
+    const token = header.startsWith('Bearer') ? header.slice(7).trim() : null;
     if (!token) {
         return res.status(401).json({ msg: "Token no proporcionado"});
     }

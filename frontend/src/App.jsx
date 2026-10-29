@@ -1,7 +1,7 @@
-import {Routes, Route} from 'react-router-dom';
-import Login from './pages/Login.jsx';
-import Productos from './pages/Productos.jsx';
-import RutaProtegida from '../src/RutaProtegida.jsx';
+import { Routes, Route } from 'react-router-dom';
+import Login from './pages/login.jsx';
+import Productos from './pages/productos.jsx';
+import RutaProtegida from './RutaProtegida.jsx';
 
 export default function App() {
     return (

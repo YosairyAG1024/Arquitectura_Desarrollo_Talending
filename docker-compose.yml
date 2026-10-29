@@ -1,0 +1,28 @@
+
+services:
+  api:
+    build:
+      context: ./api-productos
+    container_name: belizzi-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./api-productos/.env
+    environment:
+      PORT: 3000
+      SQL_SERVER: host.docker.internal
+      SQL_PORT: 1433
+      MONGO: mongodb://host.docker.internal:27017/belizzi
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: belizzi-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api

@@ -47,9 +47,12 @@ if(isError) return <p>{error.message}</p>
                 <input type="text" placeholder="Nombre" value={nombre} onChange={e=>setNombre(e.target.value)} />
                 <input type="number" placeholder="Precio" value={precio} onChange={e=>setPrecio(e.target.value)} />
                 <input type="number" placeholder="Stock" value={stock} onChange={e=>setStock(e.target.value)} />
-                <button disabled={crear.isLoading} type="submit">Agregar</button>
+                <button disabled={crear.isPending} type="submit">
+                    Agregar
+                </button>
                 {crear.isError && <p>{crear.error.message}</p>}
             </form>
+            {crear.isPending && <p>Agregando producto...</p>}
             
             <ul>
                 {data.map(producto => 
