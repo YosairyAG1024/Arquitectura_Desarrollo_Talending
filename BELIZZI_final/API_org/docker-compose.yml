@@ -1,0 +1,114 @@
+# Levanta todo con:  docker compose up --build
+# Frontend: http://localhost:3000   |   API Gateway: http://localhost:8080
+# RabbitMQ (panel): http://localhost:15672  (guest / guest)
+
+x-sql-env: &sql-env
+  SQL_SERVER: sqlserver
+  SQL_PORT: 1433
+  SQL_USER: sa
+  SQL_PASSWORD: ${SQL_PASSWORD:-MiClaveSQL2026!}
+
+services:
+  # ---------- Infraestructura ----------
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${SQL_PASSWORD:-MiClaveSQL2026!}
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  mongo-productos:
+    image: mongo:7
+    volumes:
+      - mongo-productos-data:/data/db
+
+  mongo-notificaciones:
+    image: mongo:7
+    volumes:
+      - mongo-notificaciones-data:/data/db
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 20s
+
+  # ---------- Microservicios (cada uno con su propia base de datos) ----------
+  auth:
+    build: ./servicios/auth
+    environment:
+      <<: *sql-env
+      PORT: 3001
+      SQL_DATABASE: BelizziAuthDB
+      JWT_SECRET: ${JWT_SECRET:-cambia-este-secreto-en-produccion}
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      sqlserver: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      notificaciones: { condition: service_started }
+    restart: on-failure
+
+  productos:
+    build: ./servicios/productos
+    environment:
+      <<: *sql-env
+      PORT: 3002
+      SQL_DATABASE: BelizziProductosDB
+      MONGO_URL: mongodb://mongo-productos:27017/productos
+      JWT_SECRET: ${JWT_SECRET:-cambia-este-secreto-en-produccion}
+    depends_on:
+      sqlserver: { condition: service_healthy }
+      mongo-productos: { condition: service_started }
+    restart: on-failure
+
+  notificaciones:
+    build: ./servicios/notificaciones
+    environment:
+      PORT: 3003
+      MONGO_URL: mongodb://mongo-notificaciones:27017/notificaciones
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      JWT_SECRET: ${JWT_SECRET:-cambia-este-secreto-en-produccion}
+    depends_on:
+      mongo-notificaciones: { condition: service_started }
+      rabbitmq: { condition: service_healthy }
+    restart: on-failure
+
+  # ---------- Gateway y frontend ----------
+  gateway:
+    build: ./gateway
+    environment:
+      PORT: 8080
+      AUTH_URL: http://auth:3001
+      PRODUCTOS_URL: http://productos:3002
+      NOTIFICACIONES_URL: http://notificaciones:3003
+    ports:
+      - "8080:8080"
+    depends_on:
+      - auth
+      - productos
+      - notificaciones
+    restart: on-failure
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - gateway
+
+volumes:
+  sqlserver-data:
+  mongo-productos-data:
+  mongo-notificaciones-data:
